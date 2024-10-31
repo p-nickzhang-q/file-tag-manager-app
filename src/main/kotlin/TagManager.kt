@@ -1,28 +1,29 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import java.awt.Component
 import java.awt.FileDialog
 import java.awt.Frame
-import java.awt.datatransfer.DataFlavor
 import java.awt.dnd.*
 import java.io.File
-import javax.swing.JButton
 import javax.swing.JFileChooser
-import javax.swing.SwingUtilities
 import javax.swing.filechooser.FileSystemView
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
 @Composable
 @Preview
 fun FileTagManagerApp() {
@@ -30,18 +31,13 @@ fun FileTagManagerApp() {
     // Sample data for demonstration
     val allTags =
         remember {
-            mutableStateListOf<Tag>(
-//                Tag(1, "Work"), Tag(2, "Personal"), Tag(3, "Important"), Tag(4, "Study")
-            )
+            mutableStateListOf<Tag>()
         }
     val allFiles = remember {
-        mutableStateListOf<FileItem>(
-//            FileItem("Document1.pdf", listOf(allTags[0], allTags[1]), "/path/to/Document1.pdf"),
-//            FileItem("Photo.png", listOf(allTags[2]), "/path/to/Photo.png"),
-//            FileItem("Assignment.docx", listOf(allTags[3]), "/path/to/Assignment.docx"),
-//            FileItem("Notes.txt", listOf(allTags[2], allTags[3]), "/path/to/Notes.txt")
-        )
+        mutableStateListOf<FileItem>()
     }
+
+    var dialogType by remember { mutableStateOf(DialogType.Null) }
 
     LaunchedEffect(Unit) {
         connection()?.use {
@@ -53,7 +49,6 @@ fun FileTagManagerApp() {
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedTag by remember { mutableStateOf<Int?>(null) }
-    var showMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         // Setup DropTarget for detecting drag-and-drop events
@@ -86,7 +81,7 @@ fun FileTagManagerApp() {
                         val fileList =
                             transfer.getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor) as List<File>
                         fileList.map {
-                            FileItem(it.name, mutableListOf(), it.absolutePath)
+                            FileItem(it.name, mutableStateListOf(), it.absolutePath)
                         }.forEach {
                             allFiles.ifNotExistThenAdd(it)
                         }
@@ -124,17 +119,46 @@ fun FileTagManagerApp() {
                             Text("Tags", style = MaterialTheme.typography.h6)
                         }
                         items(allTags) { tag ->
-                            ListItem(
-                                modifier = Modifier.clickable {
-                                    selectedTag = if (selectedTag == tag.id) null else tag.id
-                                },
-                                text = { Text(tag.name) },
-                                trailing = {
-                                    if (selectedTag == tag.id) {
-                                        Icon(Icons.Default.Check, contentDescription = "Selected")
+                            var expanded by remember { mutableStateOf(false) }
+                            Box {
+                                ListItem(
+                                    modifier = Modifier.clickable {
+                                        selectedTag = if (selectedTag == tag.id) null else tag.id
+                                    }.onClick(
+                                        matcher = PointerMatcher.mouse(PointerButton.Secondary), // add onClick for every required PointerButton
+                                        keyboardModifiers = { true }, // e.g { isCtrlPressed }; Remove it to ignore keyboardModifiers
+                                        onClick = {
+                                            expanded = true
+                                        }
+                                    ),
+                                    text = { Text(tag.name) },
+                                    trailing = {
+                                        if (selectedTag == tag.id) {
+                                            Icon(Icons.Default.Check, contentDescription = "Selected")
+                                        }
+                                    }
+                                )
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    DropdownMenuItem(onClick = {
+                                        dialogType = DialogType.Edit
+                                    }) {
+                                        Text("Edit")
+                                    }
+                                    DropdownMenuItem(onClick = {
+                                        dialogType = DialogType.Add
+                                    }) {
+                                        Text("Add")
+                                    }
+                                    DropdownMenuItem(onClick = {
+                                        dialogType = DialogType.Remove
+                                    }) {
+                                        Text("Remove")
                                     }
                                 }
-                            )
+                            }
                         }
                     }
 
@@ -149,10 +173,32 @@ fun FileTagManagerApp() {
                             (selectedTag == null || file.tags.any { it.id == selectedTag }) &&
                                     (searchQuery.isBlank() || file.name.contains(searchQuery, ignoreCase = true))
                         }) { file ->
-                            ListItem(
-                                text = { Text(file.name) },
-                                secondaryText = { Text("Tags: ${file.tags.joinToString(", ")}") }
-                            )
+                            Column {
+                                Text(file.name, style = MaterialTheme.typography.subtitle1)
+                                Text(file.path, style = MaterialTheme.typography.subtitle2)
+                                Row {
+                                    file.tags.forEach { tag ->
+                                        Chip(
+                                            onClick = {
+                                                file.tags.remove(tag)
+                                            },
+                                            leadingIcon = {
+                                                Icon(Icons.Default.Close, contentDescription = "Remove tag")
+                                            },
+                                            colors = ChipDefaults.chipColors(backgroundColor = Color.LightGray)
+                                        ) {
+                                            Text(tag.name)
+                                        }
+                                        Spacer(Modifier.width(4.dp))
+                                    }
+                                    SelectAddTag(allTags) {
+                                        if (!file.tags.contains(it)) {
+                                            file.tags.add(it)
+                                        }
+                                    }
+                                }
+                            }
+                            Divider()
                         }
                     }
                 }
@@ -161,36 +207,31 @@ fun FileTagManagerApp() {
             // Add button in the bottom right corner
             Box(
                 modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.BottomStart
+                contentAlignment = Alignment.BottomEnd
             ) {
-                FloatingActionButton(
-                    onClick = { showMenu = !showMenu }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add")
-                }
-
-                // Dropdown menu for adding file/folder
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false },
+                FloatingDropdownButton(
+                    listOf("Add File", "Add Folder")
                 ) {
-                    DropdownMenuItem(onClick = {
-                        showMenu = false
-                        selectFiles(allFiles)
-                        // Handle "Add File" action here
-                    }) {
-                        Text("Add File")
-                    }
-                    DropdownMenuItem(onClick = {
-                        showMenu = false
-                        selectFolder(allFiles)
-                        // Handle "Add Folder" action here
-                    }) {
-                        Text("Add Folder")
+                    when (it) {
+                        "Add File" -> {
+                            selectFiles(allFiles)
+                        }
+
+                        "Add Folder" -> {
+                            selectFolder(allFiles)
+                        }
+
+                        else -> {
+
+                        }
                     }
                 }
             }
-
         }
+
+        Dialog(dialogType, onClose = { dialogType = DialogType.Null }, onConfirm = {
+            println(it)
+        })
     }
 }
 
@@ -200,7 +241,7 @@ fun selectFiles(allFiles: MutableList<FileItem>) {
         isVisible = true
     }
     fileDialog.files?.forEach { file ->
-        allFiles.ifNotExistThenAdd(FileItem(file.name, mutableListOf(), file.path))
+        allFiles.ifNotExistThenAdd(FileItem(file.name, mutableStateListOf(), file.path))
     }
 }
 
@@ -214,6 +255,6 @@ fun selectFolder(allFiles: MutableList<FileItem>) {
     val result = fileChooser.showOpenDialog(null)
     if (result == JFileChooser.APPROVE_OPTION) {
         val folder = fileChooser.selectedFile
-        allFiles.ifNotExistThenAdd(FileItem(folder.name, mutableListOf(), folder.absolutePath))
+        allFiles.ifNotExistThenAdd(FileItem(folder.name, mutableStateListOf(), folder.absolutePath))
     }
 }

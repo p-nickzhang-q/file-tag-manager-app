@@ -1,3 +1,5 @@
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
@@ -140,7 +142,7 @@ fun <T> ResultSet.useAndPackageData(row: (ResultSet) -> T): List<T> {
 
 data class FileItem(
     var name: String = "",
-    var tags: MutableList<Tag> = mutableListOf(),
+    var tags: SnapshotStateList<Tag> = mutableStateListOf(),
     var path: String = "",
 ) {
     var id: Int? = null
