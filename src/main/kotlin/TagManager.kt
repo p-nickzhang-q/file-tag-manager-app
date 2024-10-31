@@ -22,25 +22,37 @@ import javax.swing.JFileChooser
 import javax.swing.SwingUtilities
 import javax.swing.filechooser.FileSystemView
 
-data class FileItem(val name: String, val tags: List<String>, val path: String)
-
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 @Preview
 fun FileTagManagerApp() {
+
     // Sample data for demonstration
-    val allTags = remember { mutableStateListOf("Work", "Personal", "Important", "Study") }
+    val allTags =
+        remember {
+            mutableStateListOf<Tag>(
+//                Tag(1, "Work"), Tag(2, "Personal"), Tag(3, "Important"), Tag(4, "Study")
+            )
+        }
     val allFiles = remember {
-        mutableStateListOf(
-            FileItem("Document1.pdf", listOf("Work", "Important"), "/path/to/Document1.pdf"),
-            FileItem("Photo.png", listOf("Personal"), "/path/to/Photo.png"),
-            FileItem("Assignment.docx", listOf("Study"), "/path/to/Assignment.docx"),
-            FileItem("Notes.txt", listOf("Work", "Study"), "/path/to/Notes.txt")
+        mutableStateListOf<FileItem>(
+//            FileItem("Document1.pdf", listOf(allTags[0], allTags[1]), "/path/to/Document1.pdf"),
+//            FileItem("Photo.png", listOf(allTags[2]), "/path/to/Photo.png"),
+//            FileItem("Assignment.docx", listOf(allTags[3]), "/path/to/Assignment.docx"),
+//            FileItem("Notes.txt", listOf(allTags[2], allTags[3]), "/path/to/Notes.txt")
         )
     }
 
+    LaunchedEffect(Unit) {
+        connection()?.use {
+            it.ifNotExistCreateTable()
+            allTags.addAll(it.getAllTags())
+            allFiles.addAll(it.queryAllFileItems())
+        }
+    }
+
     var searchQuery by remember { mutableStateOf("") }
-    var selectedTag by remember { mutableStateOf<String?>(null) }
+    var selectedTag by remember { mutableStateOf<Int?>(null) }
     var showMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -74,7 +86,7 @@ fun FileTagManagerApp() {
                         val fileList =
                             transfer.getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor) as List<File>
                         fileList.map {
-                            FileItem(it.name, listOf(), it.absolutePath)
+                            FileItem(it.name, mutableListOf(), it.absolutePath)
                         }.forEach {
                             allFiles.ifNotExistThenAdd(it)
                         }
@@ -114,11 +126,11 @@ fun FileTagManagerApp() {
                         items(allTags) { tag ->
                             ListItem(
                                 modifier = Modifier.clickable {
-                                    selectedTag = if (selectedTag == tag) null else tag
+                                    selectedTag = if (selectedTag == tag.id) null else tag.id
                                 },
-                                text = { Text(tag) },
+                                text = { Text(tag.name) },
                                 trailing = {
-                                    if (selectedTag == tag) {
+                                    if (selectedTag == tag.id) {
                                         Icon(Icons.Default.Check, contentDescription = "Selected")
                                     }
                                 }
@@ -134,7 +146,7 @@ fun FileTagManagerApp() {
                             Text("Files", style = MaterialTheme.typography.h6)
                         }
                         items(allFiles.filter { file ->
-                            (selectedTag == null || file.tags.contains(selectedTag)) &&
+                            (selectedTag == null || file.tags.any { it.id == selectedTag }) &&
                                     (searchQuery.isBlank() || file.name.contains(searchQuery, ignoreCase = true))
                         }) { file ->
                             ListItem(
@@ -188,7 +200,7 @@ fun selectFiles(allFiles: MutableList<FileItem>) {
         isVisible = true
     }
     fileDialog.files?.forEach { file ->
-        allFiles.ifNotExistThenAdd(FileItem(file.name, listOf(), file.path))
+        allFiles.ifNotExistThenAdd(FileItem(file.name, mutableListOf(), file.path))
     }
 }
 
@@ -202,6 +214,6 @@ fun selectFolder(allFiles: MutableList<FileItem>) {
     val result = fileChooser.showOpenDialog(null)
     if (result == JFileChooser.APPROVE_OPTION) {
         val folder = fileChooser.selectedFile
-        allFiles.ifNotExistThenAdd(FileItem(folder.name, listOf(), folder.absolutePath))
+        allFiles.ifNotExistThenAdd(FileItem(folder.name, mutableListOf(), folder.absolutePath))
     }
 }
