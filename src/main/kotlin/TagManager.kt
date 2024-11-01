@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import java.awt.FileDialog
 import java.awt.Frame
 import java.awt.dnd.*
@@ -24,7 +25,7 @@ import javax.swing.filechooser.FileSystemView
 @Composable
 @Preview
 fun FileTagManagerApp() {
-
+    val rememberCoroutineScope = rememberCoroutineScope()
     // Sample data for demonstration
 
     val allFiles = remember {
@@ -73,7 +74,7 @@ fun FileTagManagerApp() {
                         val fileList =
                             transfer.getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor) as List<File>
                         fileList.map {
-                            FileItem(it.name, mutableStateListOf(), it.absolutePath)
+                            FileItem(fileKey(it.absolutePath), it.name, mutableStateListOf(), it.absolutePath)
                         }.forEach {
                             allFiles.ifNotExistThenAdd(it)
                         }
@@ -175,7 +176,10 @@ fun FileTagManagerApp() {
                                     file.tags.forEach { tag ->
                                         Chip(
                                             onClick = {
-                                                file.tags.remove(tag)
+                                                rememberCoroutineScope.launch {
+                                                    connection.removeFileTag(file.id, tag.id!!)
+                                                    file.tags.remove(tag)
+                                                }
                                             },
                                             leadingIcon = {
                                                 Icon(Icons.Default.Close, contentDescription = "Remove tag")
@@ -187,8 +191,11 @@ fun FileTagManagerApp() {
                                         Spacer(Modifier.width(4.dp))
                                     }
                                     SelectAddTag(allTags) {
-                                        if (!file.tags.contains(it)) {
-                                            file.tags.add(it)
+                                        rememberCoroutineScope.launch {
+                                            if (!file.tags.contains(it)) {
+                                                connection.insertFileTag(file.id, it.id!!)
+                                                file.tags.add(it)
+                                            }
                                         }
                                     }
                                 }
@@ -234,7 +241,7 @@ fun selectFiles(allFiles: MutableList<FileItem>) {
         isVisible = true
     }
     fileDialog.files?.forEach { file ->
-        allFiles.ifNotExistThenAdd(FileItem(file.name, mutableStateListOf(), file.path))
+        allFiles.ifNotExistThenAdd(FileItem(fileKey(file.path), file.name, mutableStateListOf(), file.path))
     }
 }
 
@@ -248,6 +255,13 @@ fun selectFolder(allFiles: MutableList<FileItem>) {
     val result = fileChooser.showOpenDialog(null)
     if (result == JFileChooser.APPROVE_OPTION) {
         val folder = fileChooser.selectedFile
-        allFiles.ifNotExistThenAdd(FileItem(folder.name, mutableStateListOf(), folder.absolutePath))
+        allFiles.ifNotExistThenAdd(
+            FileItem(
+                fileKey(folder.absolutePath),
+                folder.name,
+                mutableStateListOf(),
+                folder.absolutePath
+            )
+        )
     }
 }

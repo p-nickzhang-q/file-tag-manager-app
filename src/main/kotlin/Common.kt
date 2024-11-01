@@ -6,10 +6,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.attribute.BasicFileAttributes
 
 fun MutableList<FileItem>.ifNotExistThenAdd(fileItem: FileItem) {
-    if (this.none { it.path == fileItem.path }) {
+    if (this.none { it.id == fileItem.id }) {
         this.add(fileItem)
+        connection.insertFileItem(fileItem)
     }
 }
 
@@ -93,7 +97,10 @@ fun TagDialog(dialogType: DialogType, onClose: () -> Unit) {
                 },
                 confirmButton = {
                     Button(onClick = {
-                        context.editTag?.name = newTagName
+                        rememberCoroutineScope.launch {
+                            context.editTag?.name = newTagName
+                            connection.updateTag(context.editTag!!)
+                        }
                         onClose()
                     }) {
                         Text("Save")
@@ -169,4 +176,9 @@ fun TagDialog(dialogType: DialogType, onClose: () -> Unit) {
 
 enum class DialogType {
     Edit, Add, Remove, Null
+}
+
+fun fileKey(path: String): String {
+    val attributes = Files.readAttributes(Paths.get(path), BasicFileAttributes::class.java)
+    return attributes.fileKey().toString()
 }

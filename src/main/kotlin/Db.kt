@@ -58,24 +58,32 @@ fun Connection.ifNotExistCreateTable() {
 }
 
 fun Connection.insertFileItem(fileItem: FileItem) {
-    var fileId: Int? = null
-    this.prepareStatement("INSERT INTO fileItem (path, name) VALUES (?, ?) RETURNING id").use {
+    this.prepareStatement("INSERT INTO fileItem (path, name,id) VALUES (?, ?,?)").use {
         it.setString(1, fileItem.path)
         it.setString(2, fileItem.name)
-        it.executeQuery().use { resultSet ->
-            if (resultSet.next()) {
-                fileId = resultSet.getInt("id")
-            }
-        }
+        it.setString(3, fileItem.id)
+        it.executeUpdate()
     }
     fileItem.tags.forEach {
-        this.prepareStatement("insert into fileItemTag (file_id,tag_id) values (?,?)").use { preparedStatement ->
-            preparedStatement.setInt(1, fileId!!)
-            preparedStatement.setInt(2, it.id!!)
-            preparedStatement.executeUpdate()
-        }
+        insertFileTag(fileItem.id, it.id!!)
     }
-    println("inserted successfully.")
+}
+
+
+fun Connection.insertFileTag(fileId: String, tagId: Int) {
+    this.prepareStatement("insert into fileItemTag (file_id,tag_id) values (?,?)").use { preparedStatement ->
+        preparedStatement.setString(1, fileId)
+        preparedStatement.setInt(2, tagId)
+        preparedStatement.executeUpdate()
+    }
+}
+
+fun Connection.removeFileTag(fileId: String, tagId: Int) {
+    this.prepareStatement("delete from fileItemTag where tag_id = ? and file_id = ?").use { preparedStatement ->
+        preparedStatement.setInt(1, tagId)
+        preparedStatement.setString(2, fileId)
+        preparedStatement.executeUpdate()
+    }
 }
 
 suspend fun Connection.insertTag(tag: Tag) {
@@ -117,7 +125,7 @@ suspend fun Connection.updateTag(tag: Tag) {
 }
 
 fun Connection.queryAllFileItems(): List<FileItem> {
-    val fileItemMap = mutableMapOf<Int, FileItem>()
+    val fileItemMap = mutableMapOf<String, FileItem>()
     this.createStatement().use {
         it.executeQuery(
             """
@@ -129,21 +137,24 @@ fun Connection.queryAllFileItems(): List<FileItem> {
         """.trimIndent()
         ).use { resultSet ->
             while (resultSet.next()) {
-                val id = resultSet.getInt("id")
+                val id = resultSet.getString("id")
                 val fileItem = if (fileItemMap.contains(id)) {
                     val fileItem = fileItemMap[id]
                     fileItem!!
                 } else {
-                    val fileItem = FileItem().apply { this.id = id }
+                    val fileItem = FileItem(id)
                     fileItemMap[id] = fileItem
                     fileItem
                 }
                 fileItem.name = resultSet.getString("name")
                 fileItem.path = resultSet.getString("path")
-                val tag = Tag()
-                tag.id = resultSet.getInt("tag_id")
-                tag.name = resultSet.getString("tag_name")
-                fileItem.tags.add(tag)
+                val tagId = resultSet.getInt("tag_id")
+                if (tagId != 0) {
+                    val tag = Tag()
+                    tag.id = tagId
+                    tag.name = resultSet.getString("tag_name")
+                    fileItem.tags.add(tag)
+                }
             }
         }
     }
@@ -172,12 +183,11 @@ fun <T> ResultSet.useAndPackageData(row: (ResultSet) -> T): List<T> {
 }
 
 data class FileItem(
+    var id: String,
     var name: String = "",
     var tags: SnapshotStateList<Tag> = mutableStateListOf(),
     var path: String = "",
-) {
-    var id: Int? = null
-}
+)
 
 data class Tag(var name: String) {
     var id: Int? = null
@@ -186,18 +196,9 @@ data class Tag(var name: String) {
 }
 
 fun main() {
-//        createTable()
-//        insertTag(Tag("Work"))
-//        insertTag(Tag("Personal"))
-//        insertTag(Tag("Important"))
-//        insertTag(Tag("Study"))
-//        val allTags = it.getAllTags()
-//        it.insertFileItem(FileItem("Document1.pdf", listOf(allTags[0], allTags[1]), "/path/to/Document1.pdf"))
-//        it.insertFileItem(FileItem("Photo.png", listOf(allTags[2]), "/path/to/Photo.png"))
-//        it.insertFileItem(FileItem("Assignment.docx", listOf(allTags[3]), "/path/to/Assignment.docx"))
-//        it.insertFileItem(FileItem("Notes.txt", listOf(allTags[2], allTags[3]), "/path/to/Notes.txt"))
-    val fileItems = connection.queryAllFileItems()
-    println(fileItems)
+    val code = fileKey("/home/dev/ComposeForDesktopDemo")
+    println(code)
 }
+
 
 val connection = connectToDatabase("${System.getProperty("user.dir")}/data.db")
