@@ -14,8 +14,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import java.awt.FileDialog
-import java.awt.Frame
 import java.awt.dnd.*
 import java.io.File
 import javax.swing.JFileChooser
@@ -212,15 +210,11 @@ fun FileTagManagerApp() {
                 contentAlignment = Alignment.BottomEnd
             ) {
                 FloatingDropdownButton(
-                    listOf("Add File", "Add Folder")
+                    listOf("Add File")
                 ) {
                     when (it) {
                         "Add File" -> {
                             selectFiles(allFiles)
-                        }
-
-                        "Add Folder" -> {
-                            selectFolder(allFiles)
                         }
 
                         else -> {
@@ -236,32 +230,24 @@ fun FileTagManagerApp() {
 }
 
 fun selectFiles(allFiles: MutableList<FileItem>) {
-    val fileDialog = FileDialog(null as Frame?, "Select Files", FileDialog.LOAD).apply {
-        isMultipleMode = true
-        isVisible = true
-    }
-    fileDialog.files?.forEach { file ->
-        allFiles.ifNotExistThenAdd(FileItem(fileKey(file.path), file.name, mutableStateListOf(), file.path))
-    }
-}
-
-fun selectFolder(allFiles: MutableList<FileItem>) {
     val fileChooser = JFileChooser(FileSystemView.getFileSystemView()).apply {
-        fileSelectionMode = JFileChooser.DIRECTORIES_ONLY // Only select directories
+        fileSelectionMode = JFileChooser.FILES_AND_DIRECTORIES // Only select directories
         isAcceptAllFileFilterUsed = false // Disable "All files" option
+        isMultiSelectionEnabled = true
         dialogTitle = "Select Folder"
     }
 
     val result = fileChooser.showOpenDialog(null)
     if (result == JFileChooser.APPROVE_OPTION) {
-        val folder = fileChooser.selectedFile
-        allFiles.ifNotExistThenAdd(
-            FileItem(
-                fileKey(folder.absolutePath),
-                folder.name,
-                mutableStateListOf(),
-                folder.absolutePath
+        fileChooser.selectedFiles.forEach {
+            allFiles.ifNotExistThenAdd(
+                FileItem(
+                    fileKey(it.absolutePath),
+                    it.name,
+                    mutableStateListOf(),
+                    it.absolutePath
+                )
             )
-        )
+        }
     }
 }
