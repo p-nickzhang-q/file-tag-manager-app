@@ -27,15 +27,14 @@ fun FileTagManagerApp() {
     // Sample data for demonstration
 
     val allFiles = remember {
-        mutableStateListOf<FileItem>()
+        context.allFiles
     }
 
-    var dialogType by remember { mutableStateOf(DialogType.Null) }
     val allTags = remember { context.allTags }
     LaunchedEffect(Unit) {
-        connection.ifNotExistCreateTable()
-        allTags.addAll(connection.getAllTags())
-        allFiles.addAll(connection.queryAllFileItems())
+        ifNotExistCreateTable()
+        allTags.addAll(getAllTags())
+        context.getAllFiles()
     }
 
     var searchQuery by remember { mutableStateOf("") }
@@ -135,19 +134,19 @@ fun FileTagManagerApp() {
                                 ) {
                                     DropdownMenuItem(onClick = {
                                         context.editTag = tag
-                                        dialogType = DialogType.Edit
+                                        context.tagDialogType = TagDialogType.Edit
                                     }) {
                                         Text("Edit")
                                     }
                                     DropdownMenuItem(onClick = {
                                         context.editTag = tag
-                                        dialogType = DialogType.Add
+                                        context.tagDialogType = TagDialogType.Add
                                     }) {
                                         Text("Add")
                                     }
                                     DropdownMenuItem(onClick = {
                                         context.editTag = tag
-                                        dialogType = DialogType.Remove
+                                        context.tagDialogType = TagDialogType.Remove
                                     }) {
                                         Text("Remove")
                                     }
@@ -167,38 +166,58 @@ fun FileTagManagerApp() {
                             (selectedTag == null || file.tags.any { it.id == selectedTag }) &&
                                     (searchQuery.isBlank() || file.name.contains(searchQuery, ignoreCase = true))
                         }) { file ->
-                            Column {
-                                Text(file.name, style = MaterialTheme.typography.subtitle1)
-                                Text(file.path, style = MaterialTheme.typography.subtitle2)
-                                Row {
-                                    file.tags.forEach { tag ->
-                                        Chip(
-                                            onClick = {
-                                                rememberCoroutineScope.launch {
-                                                    connection.removeFileTag(file.id, tag.id!!)
-                                                    file.tags.remove(tag)
-                                                }
-                                            },
-                                            leadingIcon = {
-                                                Icon(Icons.Default.Close, contentDescription = "Remove tag")
-                                            },
-                                            colors = ChipDefaults.chipColors(backgroundColor = Color.LightGray)
-                                        ) {
-                                            Text(tag.name)
-                                        }
-                                        Spacer(Modifier.width(4.dp))
+                            var expanded by remember { mutableStateOf(false) }
+                            Box {
+                                Column(modifier = Modifier.fillMaxWidth().onClick(
+                                    matcher = PointerMatcher.mouse(PointerButton.Secondary), // add onClick for every required PointerButton
+                                    keyboardModifiers = { true }, // e.g { isCtrlPressed }; Remove it to ignore keyboardModifiers
+                                    onClick = {
+                                        expanded = true
                                     }
-                                    SelectAddTag(allTags) {
-                                        rememberCoroutineScope.launch {
-                                            if (!file.tags.contains(it)) {
-                                                connection.insertFileTag(file.id, it.id!!)
-                                                file.tags.add(it)
+                                )) {
+                                    Text(file.name, style = MaterialTheme.typography.subtitle1)
+                                    Text(file.path, style = MaterialTheme.typography.subtitle2)
+                                    Row {
+                                        file.tags.forEach { tag ->
+                                            Chip(
+                                                onClick = {
+                                                    rememberCoroutineScope.launch {
+                                                        removeFileTag(file.id, tag.id!!)
+                                                        file.tags.remove(tag)
+                                                    }
+                                                },
+                                                leadingIcon = {
+                                                    Icon(Icons.Default.Close, contentDescription = "Remove tag")
+                                                },
+                                                colors = ChipDefaults.chipColors(backgroundColor = Color.LightGray)
+                                            ) {
+                                                Text(tag.name)
+                                            }
+                                            Spacer(Modifier.width(4.dp))
+                                        }
+                                        SelectAddTag(allTags) {
+                                            rememberCoroutineScope.launch {
+                                                if (!file.tags.contains(it)) {
+                                                    insertFileTag(file.id, it.id!!)
+                                                    file.tags.add(it)
+                                                }
                                             }
                                         }
                                     }
                                 }
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    DropdownMenuItem(onClick = {
+                                        context.editFile = file
+                                        context.fileDialogType = FileDialogType.Remove
+                                    }) {
+                                        Text("Remove")
+                                    }
+                                }
+                                Divider()
                             }
-                            Divider()
                         }
                     }
                 }
@@ -225,7 +244,8 @@ fun FileTagManagerApp() {
             }
         }
 
-        TagDialog(dialogType) { dialogType = DialogType.Null }
+        TagDialog()
+        FileDialog()
     }
 }
 

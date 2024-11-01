@@ -13,7 +13,7 @@ import java.nio.file.attribute.BasicFileAttributes
 fun MutableList<FileItem>.ifNotExistThenAdd(fileItem: FileItem) {
     if (this.none { it.id == fileItem.id }) {
         this.add(fileItem)
-        connection.insertFileItem(fileItem)
+        insertFileItem(fileItem)
     }
 }
 
@@ -80,10 +80,13 @@ fun SelectAddTag(
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun TagDialog(dialogType: DialogType, onClose: () -> Unit) {
+fun TagDialog() {
     val rememberCoroutineScope = rememberCoroutineScope()
-    when (dialogType) {
-        DialogType.Edit -> {
+    fun onClose() {
+        context.tagDialogType = TagDialogType.Null
+    }
+    when (context.tagDialogType) {
+        TagDialogType.Edit -> {
             var newTagName by remember { mutableStateOf(context.editTag?.name ?: "") }
             AlertDialog(
                 onDismissRequest = { },
@@ -99,7 +102,7 @@ fun TagDialog(dialogType: DialogType, onClose: () -> Unit) {
                     Button(onClick = {
                         rememberCoroutineScope.launch {
                             context.editTag?.name = newTagName
-                            connection.updateTag(context.editTag!!)
+                            updateTag(context.editTag!!)
                         }
                         onClose()
                     }) {
@@ -114,7 +117,7 @@ fun TagDialog(dialogType: DialogType, onClose: () -> Unit) {
             )
         }
 
-        DialogType.Add -> {
+        TagDialogType.Add -> {
             var newTagName by remember { mutableStateOf("") }
             AlertDialog(
                 onDismissRequest = { },
@@ -130,7 +133,7 @@ fun TagDialog(dialogType: DialogType, onClose: () -> Unit) {
                     Button(onClick = {
                         rememberCoroutineScope.launch {
                             val tag = Tag(newTagName)
-                            connection.insertTag(tag)
+                            insertTag(tag)
                             context.allTags.add(tag)
                             onClose()
                         }
@@ -146,7 +149,7 @@ fun TagDialog(dialogType: DialogType, onClose: () -> Unit) {
             )
         }
 
-        DialogType.Remove -> {
+        TagDialogType.Remove -> {
             AlertDialog(
                 onDismissRequest = { onClose() },
                 title = { Text("Confirm Delete") },
@@ -154,8 +157,9 @@ fun TagDialog(dialogType: DialogType, onClose: () -> Unit) {
                 confirmButton = {
                     Button(onClick = {
                         rememberCoroutineScope.launch {
-                            connection.deleteTag(context.editTag?.id!!)
+                            deleteTag(context.editTag?.id!!)
                             context.allTags.remove(context.editTag)
+                            context.getAllFiles()
                         }
                         onClose()
                     }) {
@@ -170,11 +174,54 @@ fun TagDialog(dialogType: DialogType, onClose: () -> Unit) {
             )
         }
 
-        DialogType.Null -> {}
+        TagDialogType.Null -> {}
     }
 }
 
-enum class DialogType {
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+fun FileDialog() {
+    val rememberCoroutineScope = rememberCoroutineScope()
+    fun close() {
+        context.fileDialogType = FileDialogType.Null
+    }
+
+    when (context.fileDialogType) {
+        FileDialogType.Remove -> {
+            AlertDialog(
+                onDismissRequest = { close() },
+                title = { Text("Confirm Delete") },
+                text = { Text("Are you sure you want to delete this tag file?") },
+                confirmButton = {
+                    Button(onClick = {
+                        rememberCoroutineScope.launch {
+                            context.allFiles.remove(context.editFile)
+                            removeFileItem(context.editFile?.id!!)
+                        }
+                        close()
+                    }) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = { close() }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        else -> {
+
+        }
+    }
+}
+
+enum class FileDialogType {
+    Remove, Null
+}
+
+enum class TagDialogType {
     Edit, Add, Remove, Null
 }
 

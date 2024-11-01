@@ -3,6 +3,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 plugins {
     kotlin("jvm")
     id("org.jetbrains.compose")
+//    id("com.github.johnrengelman.shadow") version "7.1.0"
 }
 
 group = "com.example"
@@ -20,6 +21,7 @@ dependencies {
     // (in a separate module for demo project and in testMain).
     // With compose.desktop.common you will also lose @Preview functionality
     implementation(compose.desktop.currentOs)
+    implementation(compose.desktop.windows_x64)
     implementation("org.xerial:sqlite-jdbc:3.46.0.0")
     implementation("cn.hutool:hutool-all:5.8.26")
 
@@ -27,12 +29,17 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "MainKt"
+        mainClass = "FileTagMain.kt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "ComposeForDesktopDemo"
+            targetFormats(TargetFormat.Exe, TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            packageName = "TagManager"
             packageVersion = "1.0.0"
+            windows {
+                menuGroup = "TagManager"
+                description = "TagManager"
+                vendor = "zhang yi da"
+            }
         }
     }
 }

@@ -19,8 +19,8 @@ fun connectToDatabase(dbPath: String): Connection {
     }
 }
 
-fun Connection.ifNotExistCreateTable() {
-    this.createStatement().use {
+fun ifNotExistCreateTable() {
+    connection.createStatement().use {
         it.execute(
             """
         -- 文件表
@@ -56,8 +56,8 @@ fun Connection.ifNotExistCreateTable() {
 
 }
 
-fun Connection.insertFileItem(fileItem: FileItem) {
-    this.prepareStatement("INSERT INTO fileItem (path, name,id) VALUES (?, ?,?)").use {
+fun insertFileItem(fileItem: FileItem) {
+    connection.prepareStatement("INSERT INTO fileItem (path, name,id) VALUES (?, ?,?)").use {
         it.setString(1, fileItem.path)
         it.setString(2, fileItem.name)
         it.setString(3, fileItem.id)
@@ -68,25 +68,34 @@ fun Connection.insertFileItem(fileItem: FileItem) {
     }
 }
 
+suspend fun removeFileItem(fileId: String) = withContext(Dispatchers.IO) {
+    connection.prepareStatement("delete from fileItem where id = ?").use {
+        it.setString(1, fileId)
+        it.executeUpdate()
+    }
+    connection.prepareStatement("delete from fileItemTag where file_id = ?").use {
+        it.setString(1, fileId)
+        it.executeUpdate()
+    }
+}
 
-fun Connection.insertFileTag(fileId: String, tagId: Int) {
-    this.prepareStatement("insert into fileItemTag (file_id,tag_id) values (?,?)").use { preparedStatement ->
+fun insertFileTag(fileId: String, tagId: Int) {
+    connection.prepareStatement("insert into fileItemTag (file_id,tag_id) values (?,?)").use { preparedStatement ->
         preparedStatement.setString(1, fileId)
         preparedStatement.setInt(2, tagId)
         preparedStatement.executeUpdate()
     }
 }
 
-fun Connection.removeFileTag(fileId: String, tagId: Int) {
-    this.prepareStatement("delete from fileItemTag where tag_id = ? and file_id = ?").use { preparedStatement ->
+fun removeFileTag(fileId: String, tagId: Int) {
+    connection.prepareStatement("delete from fileItemTag where tag_id = ? and file_id = ?").use { preparedStatement ->
         preparedStatement.setInt(1, tagId)
         preparedStatement.setString(2, fileId)
         preparedStatement.executeUpdate()
     }
 }
 
-suspend fun Connection.insertTag(tag: Tag) {
-    val connection = this
+suspend fun insertTag(tag: Tag) {
     withContext(Dispatchers.IO) {
         val sql = "INSERT INTO tag (name) VALUES (?) RETURNING id"
         connection.prepareStatement(sql).use {
@@ -100,8 +109,7 @@ suspend fun Connection.insertTag(tag: Tag) {
     }
 }
 
-suspend fun Connection.deleteTag(tagId: Int) {
-    val connection = this
+suspend fun deleteTag(tagId: Int) {
     withContext(Dispatchers.IO) {
         val sql = "delete from tag where id = ?"
         connection.prepareStatement(sql).use {
@@ -111,8 +119,7 @@ suspend fun Connection.deleteTag(tagId: Int) {
     }
 }
 
-suspend fun Connection.updateTag(tag: Tag) {
-    val connection = this
+suspend fun updateTag(tag: Tag) {
     withContext(Dispatchers.IO) {
         val sql = "update tag set name = ? where id = ?"
         connection.prepareStatement(sql).use {
@@ -123,45 +130,47 @@ suspend fun Connection.updateTag(tag: Tag) {
     }
 }
 
-fun Connection.queryAllFileItems(): List<FileItem> {
-    val fileItemMap = mutableMapOf<String, FileItem>()
-    this.createStatement().use {
-        it.executeQuery(
-            """
+suspend fun queryAllFileItems(): List<FileItem> {
+    return withContext(Dispatchers.IO) {
+        val fileItemMap = mutableMapOf<String, FileItem>()
+        connection.createStatement().use {
+            it.executeQuery(
+                """
             SELECT fileItem.id, fileItem.name, fileItem.path, tag.id AS tag_id, tag.name AS tag_name
             FROM fileItem
                      LEFT JOIN fileItemTag ON fileItem.id = fileItemTag.file_id
                      LEFT JOIN tag ON tag.id = fileItemTag.tag_id
             ORDER BY fileItem.id
         """.trimIndent()
-        ).use { resultSet ->
-            while (resultSet.next()) {
-                val id = resultSet.getString("id")
-                val fileItem = if (fileItemMap.contains(id)) {
-                    val fileItem = fileItemMap[id]
-                    fileItem!!
-                } else {
-                    val fileItem = FileItem(id)
-                    fileItemMap[id] = fileItem
-                    fileItem
-                }
-                fileItem.name = resultSet.getString("name")
-                fileItem.path = resultSet.getString("path")
-                val tagId = resultSet.getInt("tag_id")
-                if (tagId != 0) {
-                    val tag = Tag()
-                    tag.id = tagId
-                    tag.name = resultSet.getString("tag_name")
-                    fileItem.tags.add(tag)
+            ).use { resultSet ->
+                while (resultSet.next()) {
+                    val id = resultSet.getString("id")
+                    val fileItem = if (fileItemMap.contains(id)) {
+                        val fileItem = fileItemMap[id]
+                        fileItem!!
+                    } else {
+                        val fileItem = FileItem(id)
+                        fileItemMap[id] = fileItem
+                        fileItem
+                    }
+                    fileItem.name = resultSet.getString("name")
+                    fileItem.path = resultSet.getString("path")
+                    val tagId = resultSet.getInt("tag_id")
+                    if (tagId != 0) {
+                        val tag = Tag()
+                        tag.id = tagId
+                        tag.name = resultSet.getString("tag_name")
+                        fileItem.tags.add(tag)
+                    }
                 }
             }
         }
+        return@withContext fileItemMap.values.toList()
     }
-    return fileItemMap.values.toList()
 }
 
-fun Connection.getAllTags(): List<Tag> {
-    return this.createStatement().use {
+suspend fun getAllTags(): List<Tag> = withContext(Dispatchers.IO) {
+    return@withContext connection.createStatement().use {
         it.executeQuery("select * from tag").useAndPackageData { resultSet ->
             val tag = Tag()
             tag.id = resultSet.getInt("id")
