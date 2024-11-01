@@ -1,19 +1,21 @@
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import cn.hutool.core.exceptions.ValidateException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
 import java.sql.SQLException
 
-fun connectToDatabase(dbPath: String): Connection? {
+fun connectToDatabase(dbPath: String): Connection {
     return try {
         val url = "jdbc:sqlite:$dbPath"
         DriverManager.getConnection(url).also {
             println("Connection to SQLite has been established.")
         }
     } catch (e: SQLException) {
-        println("Failed to connect to the database: ${e.message}")
-        null
+        throw ValidateException("Failed to connect to the database: ${e.message}")
     }
 }
 
@@ -76,12 +78,41 @@ fun Connection.insertFileItem(fileItem: FileItem) {
     println("inserted successfully.")
 }
 
-fun Connection.insertTag(tag: Tag) {
-    val sql = "INSERT INTO tag (name) VALUES (?)"
-    this.prepareStatement(sql).use {
-        it.setString(1, tag.name)
-        it.executeUpdate()
-        println("inserted successfully.")
+suspend fun Connection.insertTag(tag: Tag) {
+    val connection = this
+    withContext(Dispatchers.IO) {
+        val sql = "INSERT INTO tag (name) VALUES (?) RETURNING id"
+        connection.prepareStatement(sql).use {
+            it.setString(1, tag.name)
+            it.executeQuery().use { resultSet ->
+                if (resultSet.next()) {
+                    tag.id = resultSet.getInt("id")
+                }
+            }
+        }
+    }
+}
+
+suspend fun Connection.deleteTag(tagId: Int) {
+    val connection = this
+    withContext(Dispatchers.IO) {
+        val sql = "delete from tag where id = ?"
+        connection.prepareStatement(sql).use {
+            it.setInt(1, tagId)
+            it.executeUpdate()
+        }
+    }
+}
+
+suspend fun Connection.updateTag(tag: Tag) {
+    val connection = this
+    withContext(Dispatchers.IO) {
+        val sql = "update tag set name = ? where id = ?"
+        connection.prepareStatement(sql).use {
+            it.setString(1, tag.name)
+            it.setInt(2, tag.id!!)
+            it.executeUpdate()
+        }
     }
 }
 
@@ -155,7 +186,6 @@ data class Tag(var name: String) {
 }
 
 fun main() {
-    connection()?.use {
 //        createTable()
 //        insertTag(Tag("Work"))
 //        insertTag(Tag("Personal"))
@@ -166,9 +196,8 @@ fun main() {
 //        it.insertFileItem(FileItem("Photo.png", listOf(allTags[2]), "/path/to/Photo.png"))
 //        it.insertFileItem(FileItem("Assignment.docx", listOf(allTags[3]), "/path/to/Assignment.docx"))
 //        it.insertFileItem(FileItem("Notes.txt", listOf(allTags[2], allTags[3]), "/path/to/Notes.txt"))
-        val fileItems = it.queryAllFileItems()
-        println(fileItems)
-    }
+    val fileItems = connection.queryAllFileItems()
+    println(fileItems)
 }
 
-fun connection() = connectToDatabase("${System.getProperty("user.dir")}/data.db")
+val connection = connectToDatabase("${System.getProperty("user.dir")}/data.db")

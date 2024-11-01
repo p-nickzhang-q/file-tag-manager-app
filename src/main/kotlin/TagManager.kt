@@ -1,6 +1,5 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.*
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,8 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerButton
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import java.awt.FileDialog
 import java.awt.Frame
@@ -29,22 +26,17 @@ import javax.swing.filechooser.FileSystemView
 fun FileTagManagerApp() {
 
     // Sample data for demonstration
-    val allTags =
-        remember {
-            mutableStateListOf<Tag>()
-        }
+
     val allFiles = remember {
         mutableStateListOf<FileItem>()
     }
 
     var dialogType by remember { mutableStateOf(DialogType.Null) }
-
+    val allTags = remember { context.allTags }
     LaunchedEffect(Unit) {
-        connection()?.use {
-            it.ifNotExistCreateTable()
-            allTags.addAll(it.getAllTags())
-            allFiles.addAll(it.queryAllFileItems())
-        }
+        connection.ifNotExistCreateTable()
+        allTags.addAll(connection.getAllTags())
+        allFiles.addAll(connection.queryAllFileItems())
     }
 
     var searchQuery by remember { mutableStateOf("") }
@@ -143,16 +135,19 @@ fun FileTagManagerApp() {
                                     onDismissRequest = { expanded = false }
                                 ) {
                                     DropdownMenuItem(onClick = {
+                                        context.editTag = tag
                                         dialogType = DialogType.Edit
                                     }) {
                                         Text("Edit")
                                     }
                                     DropdownMenuItem(onClick = {
+                                        context.editTag = tag
                                         dialogType = DialogType.Add
                                     }) {
                                         Text("Add")
                                     }
                                     DropdownMenuItem(onClick = {
+                                        context.editTag = tag
                                         dialogType = DialogType.Remove
                                     }) {
                                         Text("Remove")
@@ -229,9 +224,7 @@ fun FileTagManagerApp() {
             }
         }
 
-        Dialog(dialogType, onClose = { dialogType = DialogType.Null }, onConfirm = {
-            println(it)
-        })
+        TagDialog(dialogType) { dialogType = DialogType.Null }
     }
 }
 

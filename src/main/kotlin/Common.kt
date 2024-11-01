@@ -1,10 +1,11 @@
-@file:OptIn(ExperimentalMaterialApi::class)
+@file:OptIn(ExperimentalMaterialApi::class, ExperimentalMaterialApi::class)
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 
 fun MutableList<FileItem>.ifNotExistThenAdd(fileItem: FileItem) {
     if (this.none { it.path == fileItem.path }) {
@@ -73,13 +74,15 @@ fun SelectAddTag(
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun Dialog(dialogType: DialogType, onClose: () -> Unit, onConfirm: (String) -> Unit) {
+fun TagDialog(dialogType: DialogType, onClose: () -> Unit) {
+    val rememberCoroutineScope = rememberCoroutineScope()
     when (dialogType) {
         DialogType.Edit -> {
-            var newTagName by remember { mutableStateOf("") }
+            var newTagName by remember { mutableStateOf(context.editTag?.name ?: "") }
             AlertDialog(
-                onDismissRequest = { onClose() },
+                onDismissRequest = { },
                 title = { Text("Edit Tag") },
                 text = {
                     TextField(
@@ -90,7 +93,7 @@ fun Dialog(dialogType: DialogType, onClose: () -> Unit, onConfirm: (String) -> U
                 },
                 confirmButton = {
                     Button(onClick = {
-                        onConfirm(newTagName)
+                        context.editTag?.name = newTagName
                         onClose()
                     }) {
                         Text("Save")
@@ -107,7 +110,7 @@ fun Dialog(dialogType: DialogType, onClose: () -> Unit, onConfirm: (String) -> U
         DialogType.Add -> {
             var newTagName by remember { mutableStateOf("") }
             AlertDialog(
-                onDismissRequest = { onClose() },
+                onDismissRequest = { },
                 title = { Text("Add Tag") },
                 text = {
                     TextField(
@@ -118,8 +121,12 @@ fun Dialog(dialogType: DialogType, onClose: () -> Unit, onConfirm: (String) -> U
                 },
                 confirmButton = {
                     Button(onClick = {
-                        onConfirm(newTagName)
-                        onClose()
+                        rememberCoroutineScope.launch {
+                            val tag = Tag(newTagName)
+                            connection.insertTag(tag)
+                            context.allTags.add(tag)
+                            onClose()
+                        }
                     }) {
                         Text("Add")
                     }
@@ -139,7 +146,10 @@ fun Dialog(dialogType: DialogType, onClose: () -> Unit, onConfirm: (String) -> U
                 text = { Text("Are you sure you want to delete this tag?") },
                 confirmButton = {
                     Button(onClick = {
-                        onConfirm("")
+                        rememberCoroutineScope.launch {
+                            connection.deleteTag(context.editTag?.id!!)
+                            context.allTags.remove(context.editTag)
+                        }
                         onClose()
                     }) {
                         Text("Delete")

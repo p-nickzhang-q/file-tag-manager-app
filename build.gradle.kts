@@ -21,6 +21,8 @@ dependencies {
     // With compose.desktop.common you will also lose @Preview functionality
     implementation(compose.desktop.currentOs)
     implementation("org.xerial:sqlite-jdbc:3.46.0.0")
+    implementation("cn.hutool:hutool-all:5.8.26")
+
 }
 
 compose.desktop {
