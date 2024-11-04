@@ -44,13 +44,13 @@ fun FileTagManagerApp() {
 
     MaterialTheme {
         Box(modifier = Modifier.fillMaxSize().padding(16.dp).onExternalDrag { externalDragValue ->
-            rememberCoroutineScope.launch {
-                val dragData = externalDragValue.dragData
-                if (dragData is DragData.FilesList) {
-                    dragData.readFiles().map {
-                        val fileName = Paths.get(it).fileName
-                        FileItem(fileName.name, mutableStateListOf(), fileName.absolutePathString())
-                    }.forEach {
+            val dragData = externalDragValue.dragData
+            if (dragData is DragData.FilesList) {
+                dragData.readFiles().map {
+                    val fileName = Paths.get(it).fileName
+                    FileItem(fileName.name, mutableStateListOf(), fileName.absolutePathString())
+                }.forEach {
+                    rememberCoroutineScope.launch {
                         allFiles.ifNotExistThenAdd(it)
                     }
                 }

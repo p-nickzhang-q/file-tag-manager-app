@@ -198,7 +198,7 @@ data class FileItem(
     var tags: SnapshotStateList<Tag> = mutableStateListOf(),
     var path: String = "",
 ) {
-    var id: Int = 0
+    var id: Int = -1
     var selected by mutableStateOf(false)
 }
 
