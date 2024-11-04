@@ -8,18 +8,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.awt.dnd.*
 import java.io.File
+import java.nio.file.Paths
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileSystemView
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.name
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
 @Composable
 @Preview
 fun FileTagManagerApp() {
@@ -40,58 +42,70 @@ fun FileTagManagerApp() {
     var searchQuery by remember { mutableStateOf("") }
     var selectedTag by remember { mutableStateOf<Int?>(null) }
 
-    LaunchedEffect(Unit) {
-        // Setup DropTarget for detecting drag-and-drop events
-        val target = DropTarget().apply {
-            addDropTargetListener(object : DropTargetListener {
-                override fun dragEnter(dtde: DropTargetDragEvent?) {
-                    println("dragEnter")
-                }
-
-                override fun dragOver(dtde: DropTargetDragEvent?) {
-                    println("dragOver")
-                }
-
-                override fun dropActionChanged(dtde: DropTargetDragEvent?) {
-                    println("dropActionChanged")
-                }
-
-                override fun dragExit(dte: DropTargetEvent?) {
-                    println("dragExit")
-                }
-
-                override fun drop(event: DropTargetDropEvent?) {
-                    println("drop")
-                    rememberCoroutineScope.launch {
-                        if (event == null) {
-                            return@launch
-                        }
-                        event.acceptDrop(DnDConstants.ACTION_COPY)
-                        val transfer = event.transferable
-                        if (transfer.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.javaFileListFlavor)) {
-                            val fileList =
-                                transfer.getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor) as List<File>
-                            fileList.map {
-                                FileItem(fileKey(it.absolutePath), it.name, mutableStateListOf(), it.absolutePath)
-                            }.forEach {
-                                allFiles.ifNotExistThenAdd(it)
-                            }
-                            event.dropComplete(true)
-                        } else {
-                            event.dropComplete(false)
-                        }
-                    }
-
-                }
-
-            })
-        }
-        // Setting the DropTarget to the window
-        java.awt.Window.getWindows().firstOrNull()?.dropTarget = target
-    }
+//    LaunchedEffect(Unit) {
+//        // Setup DropTarget for detecting drag-and-drop events
+//        val target = DropTarget().apply {
+//            addDropTargetListener(object : DropTargetListener {
+//                override fun dragEnter(dtde: DropTargetDragEvent?) {
+//                    println("dragEnter")
+//                }
+//
+//                override fun dragOver(dtde: DropTargetDragEvent?) {
+//                    println("dragOver")
+//                }
+//
+//                override fun dropActionChanged(dtde: DropTargetDragEvent?) {
+//                    println("dropActionChanged")
+//                }
+//
+//                override fun dragExit(dte: DropTargetEvent?) {
+//                    println("dragExit")
+//                }
+//
+//                override fun drop(event: DropTargetDropEvent?) {
+//                    println("drop")
+//
+//                    if (event == null) {
+//                        return
+//                    }
+//                    event.acceptDrop(DnDConstants.ACTION_COPY)
+//                    val transfer = event.transferable
+//                    if (transfer.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.javaFileListFlavor)) {
+//                        val fileList =
+//                            transfer.getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor) as List<File>
+//                        fileList.map {
+//                            FileItem(fileKey(it.absolutePath), it.name, mutableStateListOf(), it.absolutePath)
+//                        }.forEach {
+//                            rememberCoroutineScope.launch {
+//                                allFiles.ifNotExistThenAdd(it)
+//                            }
+//                        }
+//                        event.dropComplete(true)
+//                    } else {
+//                        event.dropComplete(false)
+//                    }
+//
+//                }
+//
+//            })
+//        }
+//        // Setting the DropTarget to the window
+//        java.awt.Window.getWindows().firstOrNull()?.dropTarget = target
+//    }
 
     MaterialTheme {
-        Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Box(modifier = Modifier.fillMaxSize().padding(16.dp).onExternalDrag { externalDragValue ->
+            val dragData = externalDragValue.dragData
+            if (dragData is DragData.FilesList) {
+                dragData.readFiles().map {
+                    val fileName = Paths.get(it).fileName
+                    FileItem(fileKey(fileName.absolutePathString()), fileName.name, mutableStateListOf(), fileName.absolutePathString())
+                }.forEach {
+                    println(it)
+                }
+            }
+
+        }) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Search bar at the top
                 TextField(
