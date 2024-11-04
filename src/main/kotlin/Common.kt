@@ -230,7 +230,7 @@ fun FileDialog() {
 
 private suspend fun removeFile(fileItem: FileItem) {
     context.allFiles.remove(fileItem)
-    removeFileItem(fileItem.id)
+    removeFileItem(fileItem.id!!)
 }
 
 enum class FileDialogType {

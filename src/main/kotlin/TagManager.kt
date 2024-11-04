@@ -1,5 +1,8 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.foundation.*
+import androidx.compose.foundation.ContextMenuArea
+import androidx.compose.foundation.ContextMenuItem
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,11 +13,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import java.awt.dnd.*
-import java.io.File
 import java.nio.file.Paths
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileSystemView
@@ -47,7 +47,7 @@ fun FileTagManagerApp() {
             val dragData = externalDragValue.dragData
             if (dragData is DragData.FilesList) {
                 dragData.readFiles().map {
-                    val fileName = Paths.get(it).fileName
+                    val fileName = Paths.get(it.replace("file:", "")).fileName
                     FileItem(fileName.name, mutableStateListOf(), fileName.absolutePathString())
                 }.forEach {
                     rememberCoroutineScope.launch {
@@ -168,7 +168,7 @@ fun FileTagManagerApp() {
                                             Chip(
                                                 onClick = {
                                                     rememberCoroutineScope.launch {
-                                                        removeFileTag(file.id, tag.id!!)
+                                                        removeFileTag(file.id!!, tag.id!!)
                                                         file.tags.remove(tag)
                                                     }
                                                 },
@@ -184,7 +184,7 @@ fun FileTagManagerApp() {
                                         SelectAddTag(allTags) {
                                             rememberCoroutineScope.launch {
                                                 if (!file.tags.contains(it)) {
-                                                    insertFileTag(file.id, it.id!!)
+                                                    insertFileTag(file.id!!, it.id!!)
                                                     file.tags.add(it)
                                                 }
                                             }

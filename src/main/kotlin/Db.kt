@@ -60,14 +60,17 @@ suspend fun ifNotExistCreateTable() = withContext(Dispatchers.IO) {
 }
 
 suspend fun insertFileItem(fileItem: FileItem) = withContext(Dispatchers.IO) {
-    connection.prepareStatement("INSERT INTO fileItem (path, name,id) VALUES (?, ?,?)").use {
+    connection.prepareStatement("INSERT INTO fileItem (path, name) VALUES (?, ?) RETURNING id").use {
         it.setString(1, fileItem.path)
         it.setString(2, fileItem.name)
-        it.setInt(3, fileItem.id)
-        it.executeUpdate()
+        it.executeQuery().use { resultSet ->
+            if (resultSet.next()) {
+                fileItem.id = resultSet.getInt("id")
+            }
+        }
     }
     fileItem.tags.forEach {
-        insertFileTag(fileItem.id, it.id!!)
+        insertFileTag(fileItem.id!!, it.id!!)
     }
 }
 
@@ -198,7 +201,7 @@ data class FileItem(
     var tags: SnapshotStateList<Tag> = mutableStateListOf(),
     var path: String = "",
 ) {
-    var id: Int = -1
+    var id: Int? = null
     var selected by mutableStateOf(false)
 }
 
