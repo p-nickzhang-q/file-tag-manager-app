@@ -63,7 +63,7 @@ suspend fun insertFileItem(fileItem: FileItem) = withContext(Dispatchers.IO) {
     connection.prepareStatement("INSERT INTO fileItem (path, name,id) VALUES (?, ?,?)").use {
         it.setString(1, fileItem.path)
         it.setString(2, fileItem.name)
-        it.setString(3, fileItem.id)
+        it.setInt(3, fileItem.id)
         it.executeUpdate()
     }
     fileItem.tags.forEach {
@@ -71,29 +71,29 @@ suspend fun insertFileItem(fileItem: FileItem) = withContext(Dispatchers.IO) {
     }
 }
 
-suspend fun removeFileItem(fileId: String) = withContext(Dispatchers.IO) {
+suspend fun removeFileItem(fileId: Int) = withContext(Dispatchers.IO) {
     connection.prepareStatement("delete from fileItem where id = ?").use {
-        it.setString(1, fileId)
+        it.setInt(1, fileId)
         it.executeUpdate()
     }
     connection.prepareStatement("delete from fileItemTag where file_id = ?").use {
-        it.setString(1, fileId)
+        it.setInt(1, fileId)
         it.executeUpdate()
     }
 }
 
-suspend fun insertFileTag(fileId: String, tagId: Int) = withContext(Dispatchers.IO) {
+suspend fun insertFileTag(fileId: Int, tagId: Int) = withContext(Dispatchers.IO) {
     connection.prepareStatement("insert into fileItemTag (file_id,tag_id) values (?,?)").use { preparedStatement ->
-        preparedStatement.setString(1, fileId)
+        preparedStatement.setInt(1, fileId)
         preparedStatement.setInt(2, tagId)
         preparedStatement.executeUpdate()
     }
 }
 
-suspend fun removeFileTag(fileId: String, tagId: Int) = withContext(Dispatchers.IO) {
+suspend fun removeFileTag(fileId: Int, tagId: Int) = withContext(Dispatchers.IO) {
     connection.prepareStatement("delete from fileItemTag where tag_id = ? and file_id = ?").use { preparedStatement ->
         preparedStatement.setInt(1, tagId)
-        preparedStatement.setString(2, fileId)
+        preparedStatement.setInt(2, fileId)
         preparedStatement.executeUpdate()
     }
 }
@@ -135,7 +135,7 @@ suspend fun updateTag(tag: Tag) {
 
 suspend fun queryAllFileItems(): List<FileItem> {
     return withContext(Dispatchers.IO) {
-        val fileItemMap = mutableMapOf<String, FileItem>()
+        val fileItemMap = mutableMapOf<Int, FileItem>()
         connection.createStatement().use {
             it.executeQuery(
                 """
@@ -147,12 +147,12 @@ suspend fun queryAllFileItems(): List<FileItem> {
         """.trimIndent()
             ).use { resultSet ->
                 while (resultSet.next()) {
-                    val id = resultSet.getString("id")
+                    val id = resultSet.getInt("id")
                     val fileItem = if (fileItemMap.contains(id)) {
                         val fileItem = fileItemMap[id]
                         fileItem!!
                     } else {
-                        val fileItem = FileItem(id)
+                        val fileItem = FileItem().apply { this.id = id }
                         fileItemMap[id] = fileItem
                         fileItem
                     }
@@ -194,11 +194,11 @@ fun <T> ResultSet.useAndPackageData(row: (ResultSet) -> T): List<T> {
 }
 
 data class FileItem(
-    var id: String,
     var name: String = "",
     var tags: SnapshotStateList<Tag> = mutableStateListOf(),
     var path: String = "",
 ) {
+    var id: Int = 0
     var selected by mutableStateOf(false)
 }
 

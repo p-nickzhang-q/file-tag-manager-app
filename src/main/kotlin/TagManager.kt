@@ -42,66 +42,17 @@ fun FileTagManagerApp() {
     var searchQuery by remember { mutableStateOf("") }
     var selectedTag by remember { mutableStateOf<Int?>(null) }
 
-//    LaunchedEffect(Unit) {
-//        // Setup DropTarget for detecting drag-and-drop events
-//        val target = DropTarget().apply {
-//            addDropTargetListener(object : DropTargetListener {
-//                override fun dragEnter(dtde: DropTargetDragEvent?) {
-//                    println("dragEnter")
-//                }
-//
-//                override fun dragOver(dtde: DropTargetDragEvent?) {
-//                    println("dragOver")
-//                }
-//
-//                override fun dropActionChanged(dtde: DropTargetDragEvent?) {
-//                    println("dropActionChanged")
-//                }
-//
-//                override fun dragExit(dte: DropTargetEvent?) {
-//                    println("dragExit")
-//                }
-//
-//                override fun drop(event: DropTargetDropEvent?) {
-//                    println("drop")
-//
-//                    if (event == null) {
-//                        return
-//                    }
-//                    event.acceptDrop(DnDConstants.ACTION_COPY)
-//                    val transfer = event.transferable
-//                    if (transfer.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.javaFileListFlavor)) {
-//                        val fileList =
-//                            transfer.getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor) as List<File>
-//                        fileList.map {
-//                            FileItem(fileKey(it.absolutePath), it.name, mutableStateListOf(), it.absolutePath)
-//                        }.forEach {
-//                            rememberCoroutineScope.launch {
-//                                allFiles.ifNotExistThenAdd(it)
-//                            }
-//                        }
-//                        event.dropComplete(true)
-//                    } else {
-//                        event.dropComplete(false)
-//                    }
-//
-//                }
-//
-//            })
-//        }
-//        // Setting the DropTarget to the window
-//        java.awt.Window.getWindows().firstOrNull()?.dropTarget = target
-//    }
-
     MaterialTheme {
         Box(modifier = Modifier.fillMaxSize().padding(16.dp).onExternalDrag { externalDragValue ->
-            val dragData = externalDragValue.dragData
-            if (dragData is DragData.FilesList) {
-                dragData.readFiles().map {
-                    val fileName = Paths.get(it).fileName
-                    FileItem(fileKey(fileName.absolutePathString()), fileName.name, mutableStateListOf(), fileName.absolutePathString())
-                }.forEach {
-                    println(it)
+            rememberCoroutineScope.launch {
+                val dragData = externalDragValue.dragData
+                if (dragData is DragData.FilesList) {
+                    dragData.readFiles().map {
+                        val fileName = Paths.get(it).fileName
+                        FileItem(fileName.name, mutableStateListOf(), fileName.absolutePathString())
+                    }.forEach {
+                        allFiles.ifNotExistThenAdd(it)
+                    }
                 }
             }
 
@@ -123,7 +74,13 @@ fun FileTagManagerApp() {
                         modifier = Modifier.weight(1f).fillMaxHeight().padding(end = 8.dp)
                     ) {
                         item {
-                            Text("Tags", style = MaterialTheme.typography.h6)
+                            ContextMenuArea(items = {
+                                listOf(ContextMenuItem("Add") {
+                                    context.tagDialogType = TagDialogType.Add
+                                })
+                            }) {
+                                Text("Tags", style = MaterialTheme.typography.h6)
+                            }
                         }
                         items(allTags) { tag ->
                             ContextMenuArea(items = {
@@ -282,7 +239,6 @@ suspend fun selectFiles(allFiles: MutableList<FileItem>) {
         fileChooser.selectedFiles.forEach {
             allFiles.ifNotExistThenAdd(
                 FileItem(
-                    fileKey(it.absolutePath),
                     it.name,
                     mutableStateListOf(),
                     it.absolutePath
