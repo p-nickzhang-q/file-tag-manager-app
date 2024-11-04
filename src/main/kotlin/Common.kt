@@ -188,15 +188,26 @@ fun FileDialog() {
 
     when (context.fileDialogType) {
         FileDialogType.Remove -> {
+            val selectFiles = context.selectFiles()
+            val message = if (selectFiles.isNotEmpty()) {
+                "Are you sure you want to delete the selected tag file?"
+            } else {
+                "Are you sure you want to delete this tag file?"
+            }
             AlertDialog(
                 onDismissRequest = { close() },
                 title = { Text("Confirm Delete") },
-                text = { Text("Are you sure you want to delete this tag file?") },
+                text = { Text(message) },
                 confirmButton = {
                     Button(onClick = {
                         rememberCoroutineScope.launch {
-                            context.allFiles.remove(context.editFile)
-                            removeFileItem(context.editFile?.id!!)
+                            if (selectFiles.isNotEmpty()) {
+                                selectFiles.forEach {
+                                    removeFile(it)
+                                }
+                            } else {
+                                removeFile(context.editFile!!)
+                            }
                         }
                         close()
                     }) {
@@ -215,6 +226,11 @@ fun FileDialog() {
 
         }
     }
+}
+
+private suspend fun removeFile(fileItem: FileItem) {
+    context.allFiles.remove(fileItem)
+    removeFileItem(fileItem.id)
 }
 
 enum class FileDialogType {

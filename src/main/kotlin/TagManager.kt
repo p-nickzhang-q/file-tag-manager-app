@@ -147,7 +147,20 @@ fun FileTagManagerApp() {
                     // Right side: File list
                     LazyColumn(modifier = Modifier.weight(2f).fillMaxHeight()) {
                         item {
-                            Text("Files", style = MaterialTheme.typography.h6)
+                            Column {
+                                // 全选复选框
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Checkbox(
+                                        checked = context.isAllSelected,
+                                        onCheckedChange = { checked ->
+                                            context.isAllSelected = checked
+                                            context.updateSelection(checked)
+                                        }
+                                    )
+                                    Text("Select All")
+                                }
+                                Text("Files", style = MaterialTheme.typography.h6)
+                            }
                         }
                         items(allFiles.filter { file ->
                             (selectedTag == null || file.tags.any { it.id == selectedTag }) &&
@@ -162,8 +175,23 @@ fun FileTagManagerApp() {
                                 )
                             }) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
-                                    Text(file.name, style = MaterialTheme.typography.subtitle1)
-                                    Text(file.path, style = MaterialTheme.typography.subtitle2)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked = file.selected,
+                                            onCheckedChange = { isChecked ->
+                                                file.selected = isChecked
+                                                if (isChecked) {
+                                                    context.isAllSelected = allFiles.all { it.selected }
+                                                } else {
+                                                    context.isAllSelected = false
+                                                }
+                                            }
+                                        )
+                                        Column {
+                                            Text(file.name, style = MaterialTheme.typography.subtitle1)
+                                            Text(file.path, style = MaterialTheme.typography.subtitle2)
+                                        }
+                                    }
                                     Row {
                                         file.tags.forEach { tag ->
                                             Chip(

@@ -1,4 +1,7 @@
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import cn.hutool.core.exceptions.ValidateException
 import kotlinx.coroutines.Dispatchers
@@ -195,7 +198,9 @@ data class FileItem(
     var name: String = "",
     var tags: SnapshotStateList<Tag> = mutableStateListOf(),
     var path: String = "",
-)
+) {
+    var selected by mutableStateOf(false)
+}
 
 data class Tag(var name: String) {
     var id: Int? = null
