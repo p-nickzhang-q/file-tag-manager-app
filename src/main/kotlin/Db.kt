@@ -19,7 +19,7 @@ fun connectToDatabase(dbPath: String): Connection {
     }
 }
 
-fun ifNotExistCreateTable() {
+suspend fun ifNotExistCreateTable() = withContext(Dispatchers.IO) {
     connection.createStatement().use {
         it.execute(
             """
@@ -56,7 +56,7 @@ fun ifNotExistCreateTable() {
 
 }
 
-fun insertFileItem(fileItem: FileItem) {
+suspend fun insertFileItem(fileItem: FileItem) = withContext(Dispatchers.IO) {
     connection.prepareStatement("INSERT INTO fileItem (path, name,id) VALUES (?, ?,?)").use {
         it.setString(1, fileItem.path)
         it.setString(2, fileItem.name)
@@ -79,7 +79,7 @@ suspend fun removeFileItem(fileId: String) = withContext(Dispatchers.IO) {
     }
 }
 
-fun insertFileTag(fileId: String, tagId: Int) {
+suspend fun insertFileTag(fileId: String, tagId: Int) = withContext(Dispatchers.IO) {
     connection.prepareStatement("insert into fileItemTag (file_id,tag_id) values (?,?)").use { preparedStatement ->
         preparedStatement.setString(1, fileId)
         preparedStatement.setInt(2, tagId)
@@ -87,7 +87,7 @@ fun insertFileTag(fileId: String, tagId: Int) {
     }
 }
 
-fun removeFileTag(fileId: String, tagId: Int) {
+suspend fun removeFileTag(fileId: String, tagId: Int) = withContext(Dispatchers.IO) {
     connection.prepareStatement("delete from fileItemTag where tag_id = ? and file_id = ?").use { preparedStatement ->
         preparedStatement.setInt(1, tagId)
         preparedStatement.setString(2, fileId)

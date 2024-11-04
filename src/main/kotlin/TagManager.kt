@@ -62,23 +62,26 @@ fun FileTagManagerApp() {
 
                 override fun drop(event: DropTargetDropEvent?) {
                     println("drop")
-                    if (event == null) {
-                        return
-                    }
-                    event.acceptDrop(DnDConstants.ACTION_COPY)
-                    val transfer = event.transferable
-                    if (transfer.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.javaFileListFlavor)) {
-                        val fileList =
-                            transfer.getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor) as List<File>
-                        fileList.map {
-                            FileItem(fileKey(it.absolutePath), it.name, mutableStateListOf(), it.absolutePath)
-                        }.forEach {
-                            allFiles.ifNotExistThenAdd(it)
+                    rememberCoroutineScope.launch {
+                        if (event == null) {
+                            return@launch
                         }
-                        event.dropComplete(true)
-                    } else {
-                        event.dropComplete(false)
+                        event.acceptDrop(DnDConstants.ACTION_COPY)
+                        val transfer = event.transferable
+                        if (transfer.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.javaFileListFlavor)) {
+                            val fileList =
+                                transfer.getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor) as List<File>
+                            fileList.map {
+                                FileItem(fileKey(it.absolutePath), it.name, mutableStateListOf(), it.absolutePath)
+                            }.forEach {
+                                allFiles.ifNotExistThenAdd(it)
+                            }
+                            event.dropComplete(true)
+                        } else {
+                            event.dropComplete(false)
+                        }
                     }
+
                 }
 
             })
@@ -109,18 +112,25 @@ fun FileTagManagerApp() {
                             Text("Tags", style = MaterialTheme.typography.h6)
                         }
                         items(allTags) { tag ->
-                            var expanded by remember { mutableStateOf(false) }
-                            Box {
+                            ContextMenuArea(items = {
+                                listOf(
+                                    ContextMenuItem("Edit") {
+                                        context.editTag = tag
+                                        context.tagDialogType = TagDialogType.Edit
+                                    },
+                                    ContextMenuItem("Add") {
+                                        context.tagDialogType = TagDialogType.Add
+                                    },
+                                    ContextMenuItem("Remove") {
+                                        context.editTag = tag
+                                        context.tagDialogType = TagDialogType.Remove
+                                    }
+                                )
+                            }) {
                                 ListItem(
                                     modifier = Modifier.clickable {
                                         selectedTag = if (selectedTag == tag.id) null else tag.id
-                                    }.onClick(
-                                        matcher = PointerMatcher.mouse(PointerButton.Secondary), // add onClick for every required PointerButton
-                                        keyboardModifiers = { true }, // e.g { isCtrlPressed }; Remove it to ignore keyboardModifiers
-                                        onClick = {
-                                            expanded = true
-                                        }
-                                    ),
+                                    },
                                     text = { Text(tag.name) },
                                     trailing = {
                                         if (selectedTag == tag.id) {
@@ -128,29 +138,6 @@ fun FileTagManagerApp() {
                                         }
                                     }
                                 )
-                                DropdownMenu(
-                                    expanded = expanded,
-                                    onDismissRequest = { expanded = false }
-                                ) {
-                                    DropdownMenuItem(onClick = {
-                                        context.editTag = tag
-                                        context.tagDialogType = TagDialogType.Edit
-                                    }) {
-                                        Text("Edit")
-                                    }
-                                    DropdownMenuItem(onClick = {
-                                        context.editTag = tag
-                                        context.tagDialogType = TagDialogType.Add
-                                    }) {
-                                        Text("Add")
-                                    }
-                                    DropdownMenuItem(onClick = {
-                                        context.editTag = tag
-                                        context.tagDialogType = TagDialogType.Remove
-                                    }) {
-                                        Text("Remove")
-                                    }
-                                }
                             }
                         }
                     }
@@ -166,15 +153,15 @@ fun FileTagManagerApp() {
                             (selectedTag == null || file.tags.any { it.id == selectedTag }) &&
                                     (searchQuery.isBlank() || file.name.contains(searchQuery, ignoreCase = true))
                         }) { file ->
-                            var expanded by remember { mutableStateOf(false) }
-                            Box {
-                                Column(modifier = Modifier.fillMaxWidth().onClick(
-                                    matcher = PointerMatcher.mouse(PointerButton.Secondary), // add onClick for every required PointerButton
-                                    keyboardModifiers = { true }, // e.g { isCtrlPressed }; Remove it to ignore keyboardModifiers
-                                    onClick = {
-                                        expanded = true
+                            ContextMenuArea(items = {
+                                listOf(
+                                    ContextMenuItem("Remove") {
+                                        context.editFile = file
+                                        context.fileDialogType = FileDialogType.Remove
                                     }
-                                )) {
+                                )
+                            }) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
                                     Text(file.name, style = MaterialTheme.typography.subtitle1)
                                     Text(file.path, style = MaterialTheme.typography.subtitle2)
                                     Row {
@@ -205,17 +192,6 @@ fun FileTagManagerApp() {
                                         }
                                     }
                                 }
-                                DropdownMenu(
-                                    expanded = expanded,
-                                    onDismissRequest = { expanded = false }
-                                ) {
-                                    DropdownMenuItem(onClick = {
-                                        context.editFile = file
-                                        context.fileDialogType = FileDialogType.Remove
-                                    }) {
-                                        Text("Remove")
-                                    }
-                                }
                                 Divider()
                             }
                         }
@@ -233,7 +209,9 @@ fun FileTagManagerApp() {
                 ) {
                     when (it) {
                         "Add File" -> {
-                            selectFiles(allFiles)
+                            rememberCoroutineScope.launch {
+                                selectFiles(allFiles)
+                            }
                         }
 
                         else -> {
@@ -249,7 +227,7 @@ fun FileTagManagerApp() {
     }
 }
 
-fun selectFiles(allFiles: MutableList<FileItem>) {
+suspend fun selectFiles(allFiles: MutableList<FileItem>) {
     val fileChooser = JFileChooser(FileSystemView.getFileSystemView()).apply {
         fileSelectionMode = JFileChooser.FILES_AND_DIRECTORIES // Only select directories
         isAcceptAllFileFilterUsed = false // Disable "All files" option
