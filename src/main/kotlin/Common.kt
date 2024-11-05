@@ -11,7 +11,7 @@ import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
 
 suspend fun MutableList<FileItem>.ifNotExistThenAdd(fileItem: FileItem) {
-    if (this.none { it.id == fileItem.id }) {
+    if (this.none { it.path == fileItem.path }) {
         this.add(fileItem)
         insertFileItem(fileItem)
     }
