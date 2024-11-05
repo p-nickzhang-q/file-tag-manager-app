@@ -27,7 +27,7 @@ suspend fun ifNotExistCreateTable() = withContext(Dispatchers.IO) {
         it.execute(
             """
         -- 文件表
-        CREATE TABLE "fileItem"
+        CREATE TABLE IF NOT EXISTS "fileItem"
         (
             name TEXT not null,
             path TEXT not null
@@ -49,7 +49,7 @@ suspend fun ifNotExistCreateTable() = withContext(Dispatchers.IO) {
         it.execute(
             """
             -- 关联表，用于链接文件和标签的多对多关系
-            CREATE TABLE "fileItemTag"
+            CREATE TABLE IF NOT EXISTS "fileItemTag"
             (
                 file_id INTEGER
                     references fileItem,
