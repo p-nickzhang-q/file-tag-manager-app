@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.nio.file.Paths
+import java.util.*
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileSystemView
 import kotlin.io.path.absolutePathString
@@ -47,8 +48,19 @@ fun FileTagManagerApp() {
             val dragData = externalDragValue.dragData
             if (dragData is DragData.FilesList) {
                 dragData.readFiles().map {
-                    val fileName = Paths.get(it.replace("file:", "")).fileName
-                    FileItem(fileName.name, mutableStateListOf(), fileName.absolutePathString())
+                    val isWin = System.getProperty("os.name").lowercase(Locale.getDefault()).contains("win")
+                    val pathString = if (isWin) {
+                        it.replace("file:/", "")
+                    } else {
+                        it
+                    }
+                    val fileName = Paths.get(pathString).fileName
+                    val absolutePathString = if (isWin) {
+                        pathString
+                    } else {
+                        fileName.absolutePathString()
+                    }
+                    FileItem(fileName.name, mutableStateListOf(), absolutePathString)
                 }.forEach {
                     rememberCoroutineScope.launch {
                         allFiles.ifNotExistThenAdd(it)
