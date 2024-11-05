@@ -27,11 +27,14 @@ suspend fun ifNotExistCreateTable() = withContext(Dispatchers.IO) {
         it.execute(
             """
         -- 文件表
-        CREATE TABLE IF NOT EXISTS fileItem (
+        CREATE TABLE "fileItem"
+        (
             name TEXT not null,
-            path TEXT not null unique,
-            id   TEXT primary key
-        );
+            path TEXT not null
+                unique,
+            id   INTEGER
+                primary key
+        )
         """.trimIndent()
         )
         it.execute(
@@ -45,13 +48,14 @@ suspend fun ifNotExistCreateTable() = withContext(Dispatchers.IO) {
         )
         it.execute(
             """
-    -- 关联表，用于链接文件和标签的多对多关系
-    CREATE TABLE IF NOT EXISTS fileItemTag (
-        file_id TEXT,
-        tag_id INTEGER,
-        FOREIGN KEY (file_id) REFERENCES fileItem(id),
-        FOREIGN KEY (tag_id) REFERENCES tag(id)
-    );
+            -- 关联表，用于链接文件和标签的多对多关系
+            CREATE TABLE "fileItemTag"
+            (
+                file_id INTEGER
+                    references fileItem,
+                tag_id  INTEGER
+                    references tag
+            )
     """.trimIndent()
         )
     }
