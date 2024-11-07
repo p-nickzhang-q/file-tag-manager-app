@@ -24,7 +24,7 @@ dependencies {
     // (in a separate module for demo project and in testMain).
     // With compose.desktop.common you will also lose @Preview functionality
     implementation(compose.desktop.currentOs)
-    implementation(compose.desktop.windows_x64)
+//    implementation(compose.desktop.windows_x64)
     implementation("org.xerial:sqlite-jdbc:3.46.0.0")
     implementation("cn.hutool:hutool-all:5.8.26")
 
