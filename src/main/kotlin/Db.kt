@@ -163,8 +163,8 @@ suspend fun queryAllFileItems(): List<FileItem> {
                         fileItemMap[id] = fileItem
                         fileItem
                     }
-                    fileItem.name = resultSet.getString("name")
-                    fileItem.path = resultSet.getString("path")
+                    fileItem.name = resultSet.getString("name").decode()
+                    fileItem.path = resultSet.getString("path").decode()
                     val tagId = resultSet.getInt("tag_id")
                     if (tagId != 0) {
                         val tag = Tag()
@@ -184,7 +184,7 @@ suspend fun getAllTags(): List<Tag> = withContext(Dispatchers.IO) {
         it.executeQuery("select * from tag").useAndPackageData { resultSet ->
             val tag = Tag()
             tag.id = resultSet.getInt("id")
-            tag.name = resultSet.getString("name")
+            tag.name = resultSet.getString("name").decode()
             tag
         }
     }

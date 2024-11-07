@@ -9,6 +9,8 @@ import cn.hutool.core.exceptions.ValidateException
 import kotlinx.coroutines.launch
 import java.awt.Desktop
 import java.io.File
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
@@ -283,4 +285,9 @@ fun catchError(func: () -> Unit) {
             JOptionPane.ERROR_MESSAGE
         )
     }
+}
+
+
+fun String.decode(): String {
+    return URLDecoder.decode(this, StandardCharsets.UTF_8)
 }
