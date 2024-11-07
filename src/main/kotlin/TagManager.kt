@@ -154,6 +154,12 @@ fun FileTagManagerApp() {
                                     ContextMenuItem("Remove") {
                                         context.editFile = file
                                         context.fileDialogType = FileDialogType.Remove
+                                    },
+                                    ContextMenuItem("Open In Folder") {
+                                        openFileDirectory(file.path)
+                                    },
+                                    ContextMenuItem("Open") {
+                                        openFile(file.path)
                                     }
                                 )
                             }) {

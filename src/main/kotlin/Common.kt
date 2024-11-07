@@ -5,10 +5,14 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.*
+import cn.hutool.core.exceptions.ValidateException
 import kotlinx.coroutines.launch
+import java.awt.Desktop
+import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
+import javax.swing.JOptionPane
 
 suspend fun MutableList<FileItem>.ifNotExistThenAdd(fileItem: FileItem) {
     if (this.none { it.path == fileItem.path }) {
@@ -244,4 +248,39 @@ enum class TagDialogType {
 fun fileKey(path: String): String {
     val attributes = Files.readAttributes(Paths.get(path), BasicFileAttributes::class.java)
     return attributes.fileKey().toString()
+}
+
+fun openFile(filePath: String) {
+    catchError {
+        val file = File(filePath)
+        if (file.exists()) {
+            Desktop.getDesktop().open(file)
+        } else {
+            throw ValidateException("File does not exist.")
+        }
+    }
+}
+
+fun openFileDirectory(filePath: String) {
+    catchError {
+        val file = File(filePath)
+        if (file.exists()) {
+            Desktop.getDesktop().open(file.parentFile)
+        } else {
+            throw ValidateException("File does not exist.")
+        }
+    }
+}
+
+fun catchError(func: () -> Unit) {
+    try {
+        func()
+    } catch (e: Exception) {
+        JOptionPane.showMessageDialog(
+            java.awt.Window.getWindows().firstOrNull(),
+            e.message,
+            "error",
+            JOptionPane.ERROR_MESSAGE
+        )
+    }
 }
