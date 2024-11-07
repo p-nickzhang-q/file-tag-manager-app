@@ -3,7 +3,6 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 plugins {
     kotlin("jvm")
     id("org.jetbrains.compose")
-//    id("com.github.johnrengelman.shadow") version "7.1.0"
 }
 
 group = "com.example"
@@ -14,6 +13,10 @@ repositories {
     maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     google()
 }
+//
+//tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>() {
+//    kotlinOptions.jvmTarget = "17"
+//}
 
 dependencies {
     // Note, if you develop a library, you should use compose.desktop.common.
@@ -29,9 +32,13 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "FileTagMain.kt"
-
+        mainClass = "FileTagMainKt"
+//        buildTypes.release.proguard {
+//            isEnabled.set(false)
+//        }
         nativeDistributions {
+            // 有些包,如果通过反射用到的,不会被打包进去,所以需要显示申明一下
+            modules("java.sql")
             targetFormats(TargetFormat.Exe, TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "TagManager"
             packageVersion = "1.0.0"
