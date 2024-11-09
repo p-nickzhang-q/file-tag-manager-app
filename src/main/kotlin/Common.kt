@@ -291,3 +291,40 @@ fun catchError(func: () -> Unit) {
 fun String.decode(): String {
     return URLDecoder.decode(this, StandardCharsets.UTF_8)
 }
+
+enum class FileType(val extensions: List<String>) {
+    VIDEO(listOf("mp4", "mkv", "avi", "mov", "flv")),
+    AUDIO(
+        listOf(
+            "mp3",
+            "wav",
+            "flac",
+            "aac",
+            "ogg"
+        )
+    ),
+    DOCUMENT(listOf("pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx")),
+    IMAGE(
+        listOf(
+            "jpg",
+            "jpeg",
+            "png",
+            "gif",
+            "bmp",
+            "tiff"
+        )
+    ),
+    UNKNOWN(listOf());
+
+    companion object {
+        fun getFileType(path: String): FileType {
+            return when (File(path).extension.lowercase()) {
+                in VIDEO.extensions -> VIDEO
+                in AUDIO.extensions -> AUDIO
+                in DOCUMENT.extensions -> DOCUMENT
+                in IMAGE.extensions -> IMAGE
+                else -> UNKNOWN
+            }
+        }
+    }
+}

@@ -207,6 +207,7 @@ data class FileItem(
 ) {
     var id: Int? = null
     var selected by mutableStateOf(false)
+    val fileType = FileType.getFileType(path)
 }
 
 data class Tag(var name: String) {
