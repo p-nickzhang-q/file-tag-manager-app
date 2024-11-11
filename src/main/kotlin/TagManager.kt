@@ -10,6 +10,7 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
@@ -90,22 +91,22 @@ fun FileTagManagerApp() {
                                 Text("Tags", style = MaterialTheme.typography.h6)
                             }
                         }
-                        item {
-                            ListItem(
-                                modifier = Modifier.clickable {
-                                    allTag = !allTag
-                                    if (allTag) {
-                                        noTag = false
-                                    }
-                                },
-                                text = { Text("All") },
-                                trailing = {
-                                    if (allTag) {
-                                        Icon(Icons.Default.Check, contentDescription = "Selected")
-                                    }
-                                }
-                            )
-                        }
+//                        item {
+//                            ListItem(
+//                                modifier = Modifier.clickable {
+//                                    allTag = !allTag
+//                                    if (allTag) {
+//                                        noTag = false
+//                                    }
+//                                },
+//                                text = { Text("All") },
+//                                trailing = {
+//                                    if (allTag) {
+//                                        Icon(Icons.Default.Star, contentDescription = "Selected")
+//                                    }
+//                                }
+//                            )
+//                        }
                         item {
                             ListItem(
                                 modifier = Modifier.clickable {
@@ -117,7 +118,7 @@ fun FileTagManagerApp() {
                                 text = { Text("No Tag") },
                                 trailing = {
                                     if (noTag) {
-                                        Icon(Icons.Default.Check, contentDescription = "Selected")
+                                        Icon(Icons.Default.Star, contentDescription = "Selected")
                                     }
                                 }
                             )
