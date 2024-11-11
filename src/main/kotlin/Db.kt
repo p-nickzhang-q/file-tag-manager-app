@@ -155,16 +155,16 @@ suspend fun queryAllFileItems(): List<FileItem> {
             ).use { resultSet ->
                 while (resultSet.next()) {
                     val id = resultSet.getInt("id")
+                    val path = resultSet.getString("path").decode()
+                    val name = resultSet.getString("name").decode()
                     val fileItem = if (fileItemMap.contains(id)) {
                         val fileItem = fileItemMap[id]
                         fileItem!!
                     } else {
-                        val fileItem = FileItem().apply { this.id = id }
+                        val fileItem = FileItem(name = name, path = path).apply { this.id = id }
                         fileItemMap[id] = fileItem
                         fileItem
                     }
-                    fileItem.name = resultSet.getString("name").decode()
-                    fileItem.path = resultSet.getString("path").decode()
                     val tagId = resultSet.getInt("tag_id")
                     if (tagId != 0) {
                         val tag = Tag()
@@ -203,7 +203,7 @@ fun <T> ResultSet.useAndPackageData(row: (ResultSet) -> T): List<T> {
 data class FileItem(
     var name: String = "",
     var tags: SnapshotStateList<Tag> = mutableStateListOf(),
-    var path: String = "",
+    var path: String,
 ) {
     var id: Int? = null
     var selected by mutableStateOf(false)

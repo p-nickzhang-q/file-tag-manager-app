@@ -316,11 +316,16 @@ enum class FileType(val extensions: List<String>) {
             "tiff"
         )
     ),
-    UNKNOWN(listOf());
+    UNKNOWN(listOf()),
+    FOLDER(listOf());
 
     companion object {
         fun getFileType(path: String): FileType {
-            return when (File(path).extension.lowercase()) {
+            val file = File(path)
+            if (file.isDirectory) {
+                return FOLDER
+            }
+            return when (file.extension.lowercase()) {
                 in VIDEO.extensions -> VIDEO
                 in AUDIO.extensions -> AUDIO
                 in DOCUMENT.extensions -> DOCUMENT
@@ -339,5 +344,14 @@ fun CheckboxWithLabel(label: String, isChecked: Boolean, onCheckedChange: (Boole
             onCheckedChange = onCheckedChange
         )
         Text(text = label) // 显示 CheckBox 的标签
+    }
+}
+
+fun main() {
+    val file = File("/home/dev/ComposeForDesktopDemo/公共的")
+    if (file.exists()) {
+        println(
+            file.isDirectory
+        )
     }
 }

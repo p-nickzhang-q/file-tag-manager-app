@@ -19,7 +19,6 @@ import java.nio.file.Paths
 import java.util.*
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileSystemView
-import kotlin.io.path.absolutePathString
 import kotlin.io.path.name
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
@@ -52,15 +51,10 @@ fun FileTagManagerApp() {
                     val pathString = if (isWin) {
                         it.replace("file:/", "")
                     } else {
-                        it
+                        it.replace("file:", "")
                     }
                     val fileName = Paths.get(pathString).fileName
-                    val absolutePathString = if (isWin) {
-                        pathString
-                    } else {
-                        fileName.absolutePathString()
-                    }
-                    FileItem(fileName.name, mutableStateListOf(), absolutePathString)
+                    FileItem(fileName.name, mutableStateListOf(), pathString)
                 }.forEach {
                     rememberCoroutineScope.launch {
                         allFiles.ifNotExistThenAdd(it)
