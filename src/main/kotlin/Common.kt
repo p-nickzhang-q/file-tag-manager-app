@@ -1,12 +1,15 @@
 @file:OptIn(ExperimentalMaterialApi::class, ExperimentalMaterialApi::class)
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import cn.hutool.core.exceptions.ValidateException
 import kotlinx.coroutines.launch
 import java.awt.Desktop
@@ -345,6 +348,24 @@ fun CheckboxWithLabel(label: String, isChecked: Boolean, onCheckedChange: (Boole
         )
         Text(text = label) // 显示 CheckBox 的标签
     }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+fun CheckListItem(text: String, onCheckedChange: (Boolean) -> Unit) {
+    var selected by remember { mutableStateOf(false) }
+    ListItem(
+        modifier = Modifier.clickable {
+            selected = !selected
+            onCheckedChange(selected)
+        },
+        text = { Text(text) },
+        trailing = {
+            if (selected) {
+                Icon(Icons.Default.Check, contentDescription = "Selected")
+            }
+        }
+    )
 }
 
 fun main() {

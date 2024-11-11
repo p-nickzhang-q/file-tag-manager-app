@@ -42,6 +42,8 @@ fun FileTagManagerApp() {
     var searchQuery by remember { mutableStateOf("") }
     val selectedTag = remember { mutableStateListOf<Int>() }
     val selectTypes = remember { mutableStateListOf<FileType>() }
+    var noTag by remember { mutableStateOf(false) }
+    var allTag by remember { mutableStateOf(false) }
     MaterialTheme {
         Box(modifier = Modifier.fillMaxSize().padding(16.dp).onExternalDrag { externalDragValue ->
             val dragData = externalDragValue.dragData
@@ -88,6 +90,38 @@ fun FileTagManagerApp() {
                                 Text("Tags", style = MaterialTheme.typography.h6)
                             }
                         }
+                        item {
+                            ListItem(
+                                modifier = Modifier.clickable {
+                                    allTag = !allTag
+                                    if (allTag) {
+                                        noTag = false
+                                    }
+                                },
+                                text = { Text("All") },
+                                trailing = {
+                                    if (allTag) {
+                                        Icon(Icons.Default.Check, contentDescription = "Selected")
+                                    }
+                                }
+                            )
+                        }
+                        item {
+                            ListItem(
+                                modifier = Modifier.clickable {
+                                    noTag = !noTag
+                                    if (noTag) {
+                                        allTag = false
+                                    }
+                                },
+                                text = { Text("No Tag") },
+                                trailing = {
+                                    if (noTag) {
+                                        Icon(Icons.Default.Check, contentDescription = "Selected")
+                                    }
+                                }
+                            )
+                        }
                         items(allTags) { tag ->
                             ContextMenuArea(items = {
                                 listOf(
@@ -104,25 +138,13 @@ fun FileTagManagerApp() {
                                     }
                                 )
                             }) {
-//                                val selected = selectedTag.contains(tag.id)
-                                var selected by remember { mutableStateOf(false) }
-                                ListItem(
-                                    modifier = Modifier.clickable {
-                                        selected = !selected
-                                        if (selected) {
-                                            selectedTag.add(tag.id!!)
-                                        } else {
-                                            selectedTag.remove(tag.id!!)
-                                        }
-                                        // selectedTag = if (selectedTag == tag.id) null else tag.id
-                                    },
-                                    text = { Text(tag.name) },
-                                    trailing = {
-                                        if (selected) {
-                                            Icon(Icons.Default.Check, contentDescription = "Selected")
-                                        }
+                                CheckListItem(tag.name) {
+                                    if (it) {
+                                        selectedTag.add(tag.id!!)
+                                    } else {
+                                        selectedTag.remove(tag.id!!)
                                     }
-                                )
+                                }
                             }
                         }
                     }
@@ -134,7 +156,6 @@ fun FileTagManagerApp() {
                         item {
                             Column {
                                 // 全选复选框
-
                                 CheckboxWithLabel("Select All", context.isAllSelected) { checked ->
                                     context.isAllSelected = checked
                                     context.updateSelection(checked)
@@ -159,7 +180,13 @@ fun FileTagManagerApp() {
                             }
                         }
                         items(allFiles.filter { file ->
-                            (selectedTag.isEmpty() || file.tags.any { selectedTag.contains(it.id) }) &&
+                            (if (noTag) {
+                                file.tags.isEmpty()
+                            } else if (allTag) {
+                                true
+                            } else {
+                                selectedTag.isEmpty() || file.tags.any { selectedTag.contains(it.id) }
+                            }) &&
                                     (searchQuery.isBlank() || file.name.contains(searchQuery, ignoreCase = true)) &&
                                     (selectTypes.isEmpty() || selectTypes.contains(file.fileType))
                         }) { file ->
