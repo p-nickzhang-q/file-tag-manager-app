@@ -41,8 +41,8 @@ fun FileTagManagerApp() {
     }
 
     var searchQuery by remember { mutableStateOf("") }
-    var selectedTag by remember { mutableStateOf<Int?>(null) }
-
+    val selectedTag = remember { mutableStateListOf<Int>() }
+    val selectTypes = remember { mutableStateListOf<FileType>() }
     MaterialTheme {
         Box(modifier = Modifier.fillMaxSize().padding(16.dp).onExternalDrag { externalDragValue ->
             val dragData = externalDragValue.dragData
@@ -110,13 +110,21 @@ fun FileTagManagerApp() {
                                     }
                                 )
                             }) {
+//                                val selected = selectedTag.contains(tag.id)
+                                var selected by remember { mutableStateOf(false) }
                                 ListItem(
                                     modifier = Modifier.clickable {
-                                        selectedTag = if (selectedTag == tag.id) null else tag.id
+                                        selected = !selected
+                                        if (selected) {
+                                            selectedTag.add(tag.id!!)
+                                        } else {
+                                            selectedTag.remove(tag.id!!)
+                                        }
+                                        // selectedTag = if (selectedTag == tag.id) null else tag.id
                                     },
                                     text = { Text(tag.name) },
                                     trailing = {
-                                        if (selectedTag == tag.id) {
+                                        if (selected) {
                                             Icon(Icons.Default.Check, contentDescription = "Selected")
                                         }
                                     }
@@ -132,22 +140,34 @@ fun FileTagManagerApp() {
                         item {
                             Column {
                                 // 全选复选框
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Checkbox(
-                                        checked = context.isAllSelected,
-                                        onCheckedChange = { checked ->
-                                            context.isAllSelected = checked
-                                            context.updateSelection(checked)
-                                        }
-                                    )
-                                    Text("Select All")
+
+                                CheckboxWithLabel("Select All", context.isAllSelected) { checked ->
+                                    context.isAllSelected = checked
+                                    context.updateSelection(checked)
                                 }
-                                Text("Files", style = MaterialTheme.typography.h6)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Files", style = MaterialTheme.typography.h6)
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    FileType.values().forEach {
+                                        val isChecked = selectTypes.contains(it)
+                                        CheckboxWithLabel(it.name, isChecked) { checked ->
+                                            if (checked) {
+                                                selectTypes.add(it)
+                                            } else {
+                                                selectTypes.remove(it)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         items(allFiles.filter { file ->
-                            (selectedTag == null || file.tags.any { it.id == selectedTag }) &&
-                                    (searchQuery.isBlank() || file.name.contains(searchQuery, ignoreCase = true))
+                            (selectedTag.isEmpty() || file.tags.any { selectedTag.contains(it.id) }) &&
+                                    (searchQuery.isBlank() || file.name.contains(searchQuery, ignoreCase = true)) &&
+                                    (selectTypes.isEmpty() || selectTypes.contains(file.fileType))
                         }) { file ->
                             ContextMenuArea(items = {
                                 listOf(

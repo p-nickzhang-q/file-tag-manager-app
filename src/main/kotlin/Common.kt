@@ -1,10 +1,12 @@
 @file:OptIn(ExperimentalMaterialApi::class, ExperimentalMaterialApi::class)
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import cn.hutool.core.exceptions.ValidateException
 import kotlinx.coroutines.launch
 import java.awt.Desktop
@@ -326,5 +328,16 @@ enum class FileType(val extensions: List<String>) {
                 else -> UNKNOWN
             }
         }
+    }
+}
+
+@Composable
+fun CheckboxWithLabel(label: String, isChecked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(
+            checked = isChecked,
+            onCheckedChange = onCheckedChange
+        )
+        Text(text = label) // 显示 CheckBox 的标签
     }
 }
