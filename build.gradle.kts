@@ -41,7 +41,7 @@ compose.desktop {
             modules("java.sql")
             targetFormats(TargetFormat.Exe, TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "TagManager"
-            packageVersion = "1.0.0"
+            packageVersion = "1.0.1"
             windows {
                 menuGroup = "TagManager"
                 description = "TagManager"
