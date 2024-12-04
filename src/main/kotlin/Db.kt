@@ -222,4 +222,4 @@ fun main() {
 }
 
 
-val connection = connectToDatabase("${System.getProperty("user.dir")}/data.db")
+val connection = connectToDatabase("${System.getProperty("user.home")}/FileTagManagerApp.db")
